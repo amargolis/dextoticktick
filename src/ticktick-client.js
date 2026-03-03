@@ -140,35 +140,58 @@ class TickTickClient {
         };
     }
 
+    async requestWithReauth(fn) {
+        try {
+            return await fn();
+        } catch (error) {
+            if (error.response?.status === 401) {
+                console.log('Token expired or invalid, re-authenticating...');
+                this.accessToken = null;
+                this.tokenExpiresAt = null;
+                // Remove stale token file so ensureAuthenticated triggers OAuth
+                if (fs.existsSync(TOKEN_PATH)) fs.unlinkSync(TOKEN_PATH);
+                await this.ensureAuthenticated();
+                return await fn();
+            }
+            throw error;
+        }
+    }
+
     async createTask(taskData) {
         await this.ensureAuthenticated();
-        const response = await axios.post(`${this.baseUrl}/task`, taskData, {
-            headers: this.authHeaders(),
+        return this.requestWithReauth(async () => {
+            const response = await axios.post(`${this.baseUrl}/task`, taskData, {
+                headers: this.authHeaders(),
+            });
+            return response.data;
         });
-        return response.data;
     }
 
     async completeTask(taskId) {
         await this.ensureAuthenticated();
         await this.delay(this.rateLimitDelay);
-        const response = await axios.post(`${this.baseUrl}/task/${taskId}`, {
-            status: 1,
-        }, {
-            headers: this.authHeaders(),
+        return this.requestWithReauth(async () => {
+            const response = await axios.post(`${this.baseUrl}/task/${taskId}`, {
+                status: 1,
+            }, {
+                headers: this.authHeaders(),
+            });
+            return response.data;
         });
-        return response.data;
     }
 
     async markTaskRemoved(taskId) {
         await this.ensureAuthenticated();
         await this.delay(this.rateLimitDelay);
-        const response = await axios.post(`${this.baseUrl}/task/${taskId}`, {
-            status: 1,
-            tags: ['jobsearch', 'deleted'],
-        }, {
-            headers: this.authHeaders(),
+        return this.requestWithReauth(async () => {
+            const response = await axios.post(`${this.baseUrl}/task/${taskId}`, {
+                status: 1,
+                tags: ['jobsearch', 'deleted'],
+            }, {
+                headers: this.authHeaders(),
+            });
+            return response.data;
         });
-        return response.data;
     }
 
     delay(ms) {
