@@ -52,15 +52,29 @@ Automatically sync reminders from [Dex](https://getdex.com) (personal CRM) to [T
 
 ## How it works
 
-The sync runs in a loop (default: every 60 seconds):
+The sync runs in a loop (default: every 60 seconds). Each cycle waits for the previous one to finish before starting the next.
 
-1. Fetches all reminders from the Dex API
+1. Fetches all reminders from the Dex API (with pagination)
 2. For each new reminder, fetches associated contact details
 3. Creates a TickTick task with the reminder text, contact info, and due date
 4. If a reminder was completed in Dex, completes the matching TickTick task
 5. If a reminder was deleted in Dex, completes and tags the TickTick task with `#deleted`
 
+The TickTick OAuth token is automatically refreshed when it expires.
+
 All sync activity is logged in a local SQLite database (`job_search_data.db`).
+
+## Project structure
+
+```
+src/
+  index.js            Entry point, graceful shutdown
+  config.js           Environment variable loading and validation
+  database.js         SQLite database layer (better-sqlite3)
+  dex-client.js       Dex API client with pagination
+  ticktick-client.js  TickTick API client with OAuth and token refresh
+  sync.js             Sync orchestration logic
+```
 
 ## Configuration
 
