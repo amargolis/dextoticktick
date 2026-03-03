@@ -1,0 +1,6 @@
+node_modules/
+.env
+ticktick_token.json
+job_search_data.db
+.DS_Store
+.claude/
